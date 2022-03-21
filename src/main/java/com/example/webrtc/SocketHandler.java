@@ -85,11 +85,8 @@ public class SocketHandler extends TextWebSocketHandler  {
     public void afterConnectionEstablished(WebSocketSession session) throws Exception {
         // 連線建立後，新增到list
         sessions.add(session);
-        System.out.println("-------------------------Web Socket Connection opened!-------------------------");
 
         notifyAllClient();
-
-        log.info("afterConnectionEstablished notifyAllClient finished");
 
         // keep alive
         Timer t = new Timer();

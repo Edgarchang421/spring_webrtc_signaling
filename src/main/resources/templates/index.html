@@ -157,14 +157,14 @@
                 data:JSON.stringify({
                   to: from,
                   from: username,
-                  answer: answer
+                  answer: JSON.stringify(answer)
                 })
               }))
             })
             return
 
           case 'answer':
-           let answer = data.answer
+           let answer = JSON.parse(data.answer)
             pc.setRemoteDescription(answer)
 
           case 'candidate':
