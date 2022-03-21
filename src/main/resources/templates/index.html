@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+  </head>
+  <body>
+    <form>
+      請輸入使用者名稱：<input type="text" name="username" id="username">
+    </form>
+    <button id="new">new</button>
+    <form>
+      請輸入視訊使用者名稱：<input type="text" name="receiver" id="receiver">
+    </form>
+    <button id="call">call</button>
+    <h3> Local Video </h3>
+    <video id="localVideo" width="160" height="120" autoplay muted></video> <br />
+
+    <h3> Remote Video </h3>
+    <div id="remoteVideos"></div> <br />
+
+    <h3> Users </h3>
+    <div id="usernames"></div>
+
+    <button id="close">close</button>
+  </body>
+
+  <script>
+    const usernames = document.querySelector("div#usernames")
+
+    navigator.mediaDevices.getUserMedia({ video: true, audio: true })
+    .then(stream => {
+      var receiver;
+      const configuration = {'iceServers': [{'urls': 'stun:stun.l.google.com:19302'}]}
+      let pc = new RTCPeerConnection(configuration)
+      pc.ontrack = function (event) {
+        if (event.track.kind === 'audio') {
+          return
+        }
+
+        let el = document.createElement(event.track.kind)
+        el.srcObject = event.streams[0]
+        el.autoplay = true
+        el.controls = true
+        document.getElementById('remoteVideos').appendChild(el)
+
+        event.track.onmute = function(event) {
+          el.play()
+        }
+
+        event.streams[0].onremovetrack = ({track}) => {
+          if (el.parentNode) {
+            el.parentNode.removeChild(el)
+          }
+        }
+      }
+
+      document.getElementById('localVideo').srcObject = stream
+      stream.getTracks().forEach(track => pc.addTrack(track, stream))
+
+      let ws = new WebSocket("wss://edgarchang.net/socket")
+
+      pc.onicecandidate = e => {
+        var username = document.getElementById("username").value;
+        if (document.getElementById("receiver").value !=""){
+          receiver = document.getElementById("receiver").value;
+        }
+        if (!e.candidate) {
+          return
+        }
+
+        console.log("receiver: ",receiver)
+        ws.send(
+          JSON.stringify({
+            type: 'candidate', 
+            data: JSON.stringify({
+              to: receiver,
+              from: username,
+              candidate: JSON.stringify(e.candidate)
+            })
+          })
+        )
+      }
+
+      document.getElementById('close').addEventListener('click', async ()  => {
+        ws.close();
+      })
+
+      document.getElementById('new').addEventListener('click', async ()  => {
+        var username = document.getElementById("username").value;
+        ws.send(JSON.stringify({
+          type: 'new',
+          data: JSON.stringify({
+            username:username
+          })
+        }))
+      })
+
+      document.getElementById('call').addEventListener('click', async ()  => {
+        var username = document.getElementById("username").value;
+        var receiver = document.getElementById("receiver").value;
+
+        pc.createOffer().then(offer =>{
+          pc.setLocalDescription(offer)
+          ws.send(
+            JSON.stringify({
+              type:'offer',
+              data:JSON.stringify({
+                to: receiver,
+                from: username,
+                offer: offer
+              })
+            })
+          )
+        })
+      })
+
+      ws.onclose = function(evt) {
+        console.log(evt.reason)
+        window.alert("Websocket has closed")
+      }
+
+      ws.onmessage = function(evt) {
+        // console.log('on message start')
+        // if (evt.data = "keepalive"){
+        //   return
+        // }
+        // console.log("not keep alive need to perse")
+        // console.log(evt.data)
+        let msg = JSON.parse(evt.data);
+        var data;
+        if (!msg) {
+          return console.log('failed to parse msg')
+        }
+        if (msg.type != "keepalive"){
+          data = JSON.parse(msg.data)
+        }
+        switch (msg.type) {
+          case 'notify':
+            usernames.textContent = data.usernames
+            return
+
+          case 'offer':
+            var username = document.getElementById("username").value;
+            let offer = data.offer
+            let from = data.from
+            receiver = from
+            console.log("receiver: ",receiver)
+            console.log(receiver)
+            if (!offer) {
+              return console.log('failed to parse answer')
+            }
+            pc.setRemoteDescription(offer)
+            pc.createAnswer().then(answer => {
+              pc.setLocalDescription(answer)
+              ws.send(JSON.stringify({
+                type: 'answer', 
+                data:JSON.stringify({
+                  to: from,
+                  from: username,
+                  answer: answer
+                })
+              }))
+            })
+            return
+
+          case 'answer':
+           let answer = data.answer
+            pc.setRemoteDescription(answer)
+
+          case 'candidate':
+            // console.log(data.candidate)
+            let candidate = JSON.parse(data.candidate)
+            if (!candidate) {
+              return console.log('failed to parse candidate')
+            }
+
+            pc.addIceCandidate(candidate)
+
+          case 'error':
+            let msg = data.message
+            console.log(msg)
+
+          case 'keepalive':
+            // console.log('keepalive')
+        }
+      }
+
+      ws.onerror = function(evt) {
+        console.log("ERROR: " + evt.data)
+      }
+    }).catch(window.alert)
+  </script>
+</html>
