@@ -78,7 +78,7 @@ public class SocketHandler extends TextWebSocketHandler  {
         usernames.remove(this.username);
         webSocketClients.remove(this.username);
 
-        notify();
+        notifyAllClient();
     }
 
     @Override
@@ -101,7 +101,8 @@ public class SocketHandler extends TextWebSocketHandler  {
                     session.sendMessage(keepAliveMsg);
                 } catch (InterruptedException | IOException e) {
                     // TODO Auto-generated catch block
-                    e.printStackTrace();
+                    // e.printStackTrace();
+                    log.info("keep alive over");
                 }
             }
         };
@@ -151,7 +152,7 @@ public class SocketHandler extends TextWebSocketHandler  {
 
         for (WebSocketSession session : sessions){
             session.sendMessage(msg);
-            log.info("notify");
+            log.info("update users info for all client");
         }
     }
 
