@@ -35,8 +35,8 @@ public class SocketHandler extends TextWebSocketHandler  {
 
     private static final Logger log = LoggerFactory.getLogger(SocketHandler.class);
     
-    private static JSONObject j = new JSONObject().put("type", "keepalive");
-    private static TextMessage keepAliveMsg = new TextMessage(j.toString());
+    private static final JSONObject j = new JSONObject().put("type", "keepalive");
+    private static final TextMessage keepAliveMsg = new TextMessage(j.toString());
     
     private String username;
 
@@ -60,13 +60,13 @@ public class SocketHandler extends TextWebSocketHandler  {
                 onNewEvent(username, session);
                 break;
             case "candidate":
-                webrtcNegotiation(type,jsonData);
+                onWebrtcNegotiation(type,jsonData);
                 break;
             case "offer":
-                webrtcNegotiation(type,jsonData);
+                onWebrtcNegotiation(type,jsonData);
                 break;
             case "answer":
-                webrtcNegotiation(type,jsonData);
+                onWebrtcNegotiation(type,jsonData);
             break;
         }
 
@@ -153,7 +153,7 @@ public class SocketHandler extends TextWebSocketHandler  {
         }
     }
 
-    public void webrtcNegotiation(String type,JSONObject jsonData){
+    public void onWebrtcNegotiation(String type,JSONObject jsonData){
         String receiver = jsonData.getString("to");
         log.info("type {} to receiver: {}",type,receiver);
 
