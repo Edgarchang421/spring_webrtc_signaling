@@ -75,7 +75,8 @@
             data: JSON.stringify({
               to: receiver,
               from: username,
-              candidate: JSON.stringify(e.candidate)
+              // candidate: JSON.stringify(e.candidate)
+              candidate: e.candidate
             })
           })
         )
@@ -168,16 +169,19 @@
             pc.setRemoteDescription(answer)
 
           case 'candidate':
-            // console.log(data.candidate)
-            let candidate = JSON.parse(data.candidate)
+            // console.log("unparse: "+data.candidate)
+            // let candidate = JSON.parse(data.candidate)
+            let candidate = data.candidate
             if (!candidate) {
               return console.log('failed to parse candidate')
             }
+            // console.log("parsed: "+candidate)
 
             pc.addIceCandidate(candidate)
+            console.log("add ice candidate success")
 
           case 'error':
-            let msg = data.message
+            let msg = JSON.parse(data.message)
             console.log(msg)
 
           case 'keepalive':
